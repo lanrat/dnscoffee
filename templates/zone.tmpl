@@ -135,7 +135,11 @@
             };
             for (var i = 0; i < nameservers[name].length; i++) {
               if (!nameservers[name][i].hasOwnProperty("firstseen")) {
-                nameservers[name][i].firstseen = api_response.data.firstseen;
+                if (!api_response.data.hasOwnProperty("firstseen")) {
+                  nameservers[name][i].firstseen = new Date("2011-04-11").toISOString();
+                } else {
+                  nameservers[name][i].firstseen = api_response.data.firstseen;
+                }
               }
               if (!nameservers[name][i].hasOwnProperty("lastseen")) {
                 if (!api_response.data.hasOwnProperty("lastseen")) {
