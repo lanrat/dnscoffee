@@ -1097,7 +1097,7 @@ const DNSResolutionGrapher = {};
                                     const nameserverLink = nameserver.link || "/nameservers/"+nameserver.name;
                                     const domainLink  ="/domains/"+domainName;
                                     // Check if zone is mapped
-                                    const zoneData = mappedLinks["HTTPS://DNS.COFFEE/API/ZONES"].data.zones;
+                                    const zoneData = mappedLinks["/API/ZONES"].data.zones;
                                     const zone = (nameserverDomain.tld) ? {"name":nameserverDomain.tld} : null
                                     const zoneMapped= zoneData.map(zone=>zone.zone.toUpperCase()).includes(zone.name.toUpperCase());
                                     // Check if root domain is either domain or nameserver
