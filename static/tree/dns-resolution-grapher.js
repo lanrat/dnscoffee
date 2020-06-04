@@ -2011,7 +2011,6 @@ const DNSResolutionGrapher = {};
             .attr("width", (d)=>d.metadata.width)
             .attr("height", (d)=>d.metadata.height).text((d)=>d.name)
             .attr("fill",(d)=>d.metadata.textColor);
-            // Add danger symbol for hazardous nodes and warning
             const hazardWrapper = nodes.filter((d)=>d.metadata.hazard || d.metadata.warning).append("g");
             // Add circle for hazard symbol
             hazardWrapper.append("polygon")

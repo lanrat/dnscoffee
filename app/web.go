@@ -65,6 +65,7 @@ func Start(ds *datastore.DataStore, server *server.Server) {
 	server.Get("/domains/:domain", app.domainHandler)
 	server.Get("/ip/:ip", app.ipHandler)
 	server.Get("/nameservers/:nameserver", app.nameserverHandler)
+	server.Get("/root/", app.rootHandler)
 	server.Get("/zones/:zone", app.zoneHandler)
 	server.Get("/zones", app.zoneIndexHandler)
 	server.Get("/tlds", app.tldIndexHandler)
@@ -72,8 +73,8 @@ func Start(ds *datastore.DataStore, server *server.Server) {
 	server.Get("/stats", app.statsHandler)
 
 	// research
-	server.Get("/research/ipnszonecount/:ip", app.ipNsZoneCountHandler)
 	server.Get("/research/trust-tree", app.trustTreeHandler)
+	server.Get("/research/ipnszonecount/:ip", app.ipNsZoneCountHandler)
 }
 
 func (app *appContext) searchIndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +143,7 @@ func (app *appContext) searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// render search page
-	p := Page{"Search", "", s}
+	p := Page{"Search", "Search", s}
 	err = app.templates.ExecuteTemplate(w, "search.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -155,7 +156,7 @@ func (app *appContext) statsHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	p := Page{"Stats", "Stats", data}
+	p := Page{"Stats", "", data}
 	err = app.templates.ExecuteTemplate(w, "stats.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -181,8 +182,33 @@ func (app *appContext) tldIndexHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	p := Page{"TLDs", "TLDs", data}
+	p := Page{"TLDs", "Zones", data}
 	err = app.templates.ExecuteTemplate(w, "tlds.tmpl", p)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (app *appContext) rootHandler(w http.ResponseWriter, r *http.Request) {
+	name := ""
+	data, err := app.ds.GetZone(r.Context(), name)
+	if err != nil {
+		if err == datastore.ErrNoResource {
+			// TODO make http err (not json)
+			server.WriteJSONError(w, server.ErrResourceNotFound)
+			return
+		}
+		panic(err)
+	}
+	importData, err := app.ds.GetZoneImport(r.Context(), name)
+	if err == nil {
+		// TODO check for datastore.ErrNoResource and sql.NoRows
+		// TODO in fact, make ErrNoResource include? sql.NowRows as well
+		data.ImportData = importData
+	}
+
+	p := Page{"ROOT Zone", "Zones", data}
+	err = app.templates.ExecuteTemplate(w, "root.tmpl", p)
 	if err != nil {
 		panic(err)
 	}
@@ -211,6 +237,8 @@ func (app *appContext) zoneHandler(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 		data.Domains = &domains
+	} else {
+		// TODO add first_date field for zones I don't import
 	}
 
 	p := Page{name, "Zones", data}
@@ -233,7 +261,7 @@ func (app *appContext) nameserverHandler(w http.ResponseWriter, r *http.Request)
 		panic(err)
 	}
 
-	p := Page{name, "Nameservers", data}
+	p := Page{name, "DNS", data}
 	err = app.templates.ExecuteTemplate(w, "nameserver.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -254,7 +282,7 @@ func (app *appContext) domainHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	p := Page{domain, "Domains", data}
+	p := Page{domain, "DNS", data}
 	err = app.templates.ExecuteTemplate(w, "domain.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -275,7 +303,7 @@ func (app *appContext) ipHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	p := Page{name, "IPs", data}
+	p := Page{name, "DNS", data}
 	err = app.templates.ExecuteTemplate(w, "ip.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -355,7 +383,7 @@ func (app *appContext) IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *appContext) domainIndexHandler(w http.ResponseWriter, r *http.Request) {
-	p := Page{"Domains", "Domains", nil}
+	p := Page{"Domains", "DNS", nil}
 	err := app.templates.ExecuteTemplate(w, "domains.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -363,7 +391,7 @@ func (app *appContext) domainIndexHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *appContext) nameserverIndexHandler(w http.ResponseWriter, r *http.Request) {
-	p := Page{"Name Servers", "Nameservers", nil}
+	p := Page{"Name Servers", "DNS", nil}
 	err := app.templates.ExecuteTemplate(w, "nameservers.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -371,7 +399,7 @@ func (app *appContext) nameserverIndexHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (app *appContext) ipIndexHandler(w http.ResponseWriter, r *http.Request) {
-	p := Page{"IPs", "IPs", nil}
+	p := Page{"IPs", "DNS", nil}
 	err := app.templates.ExecuteTemplate(w, "ips.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -392,7 +420,7 @@ func (app *appContext) ipNsZoneCountHandler(w http.ResponseWriter, r *http.Reque
 		panic(err)
 	}
 
-	p := Page{"IP NS Zone Count", "IP NS Zone Count", data}
+	p := Page{"IP NS Zone Count", "Research", data}
 	err = app.templates.ExecuteTemplate(w, "ipnszonecount.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -400,7 +428,7 @@ func (app *appContext) ipNsZoneCountHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (app *appContext) trustTreeHandler(w http.ResponseWriter, r *http.Request) {
-	p := Page{"Trust Tree", "Trust Tree", nil}
+	p := Page{"Trust Tree", "Research", nil}
 	err := app.templates.ExecuteTemplate(w, "trusttree.tmpl", p)
 	if err != nil {
 		panic(err)
@@ -410,10 +438,11 @@ func (app *appContext) trustTreeHandler(w http.ResponseWriter, r *http.Request) 
 // helper
 func cleanDomain(domain string) string {
 	domain = strings.TrimSpace(domain)
-	domain, err := idna.ToASCII(strings.ToUpper(domain))
+	domain, err := idna.ToASCII(domain)
 	if err != nil {
 		panic(err)
 	}
+	domain = strings.ToUpper(domain)
 	return domain
 }
 
