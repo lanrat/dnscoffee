@@ -689,6 +689,27 @@ const DNSResolutionGrapher = {};
                                     node.setTooltip();
                                 })
                             }
+                            if(element.metadata.warning){
+                                // Append warning message to branch
+                                currentBranch.warning = currentBranch.warning || [];
+                                if(element.metadata.warning!=null &&
+                                    !currentBranch.warning.includes(element.metadata.warning)){
+                                    currentBranch.warning.push(element.metadata.warning);
+                                }
+                                // Update stats for each warning(misconfigured) domains
+                                this.updateOverview("warning",element.metadata.domain);
+                                currentBranch.nodes.forEach((node)=>{
+                                    node.metadata.warning=currentBranch.warning;
+                                    node.setTooltip();
+                                })
+                            }
+                            // If current branch contains a warning node,
+                            // then all incoming nodes are warningous
+                            if(currentBranch.warning){
+                                element.metadata.warning=currentBranch.warning;
+                                // Update stats for each warning node
+                                element.setTooltip();
+                            }
                             // If current branch contains a hazard node,
                             // then all incoming nodes are hazardous
                             if(currentBranch.hazard!=null){
