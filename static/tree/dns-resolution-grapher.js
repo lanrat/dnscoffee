@@ -1,5 +1,17 @@
 const DNSResolutionGrapher = {};
 (function(exports){
+    // List of public nameserver ips
+    const publicNameserverList = ['8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112','208.67.222.222',
+    '208.67.220.220','1.1.1.1','1.0.0.1','185.228.168.9','185.228.169.9','64.6.64.6','64.6.65.6',
+    '198.101.242.72','23.253.163.53','176.103.130.130','176.103.130.131',"2001:4860:4860::8888",
+    "2001:4860:4860::8844","2620:fe::fe","2620:fe::9","9.9.9.10","2620:fe::10","2620:119:35::35",
+    "2620:119:53::53","2606:4700:4700::1111","2606:4700:4700::1001","2a0d:2a00:1::2","2a0d:2a00:2::2",
+    "2620:74:1b::1:1","2620:74:1c::2:2","198.101.242.72","23.253.163.53","2001:4800:780e:510:a8cf:392e:ff04:8982",
+    "2001:4801:7825:103:be76:4eff:fe10:2e49","2a00:5a60::ad1:0ff","2a00:5a60::ad2:0ff","84.200.69.80",
+    "84.200.70.40","8.26.56.26","8.20.247.20","205.171.3.66","205.171.202.166","195.46.39.39",
+    "195.46.39.40","66.187.76.168","147.135.76.183","147.135.76.183","216.146.35.35","216.146.36.36",
+    "45.33.97.5","37.235.1.177","77.88.8.8","77.88.8.1","91.239.100.100","89.233.43.71","74.82.42.42",
+    "109.69.8.51","156.154.70.5","156.154.71.5","45.77.165.194","45.32.36.36"];
     // Definitions for MsgSet node, edge, nodelist
     class MsgSet extends Set{
         merge(iterable){
@@ -689,27 +701,6 @@ const DNSResolutionGrapher = {};
                                     node.setTooltip();
                                 })
                             }
-                            if(element.metadata.warning){
-                                // Append warning message to branch
-                                currentBranch.warning = currentBranch.warning || [];
-                                if(element.metadata.warning!=null &&
-                                    !currentBranch.warning.includes(element.metadata.warning)){
-                                    currentBranch.warning.push(element.metadata.warning);
-                                }
-                                // Update stats for each warning(misconfigured) domains
-                                this.updateOverview("warning",element.metadata.domain);
-                                currentBranch.nodes.forEach((node)=>{
-                                    node.metadata.warning=currentBranch.warning;
-                                    node.setTooltip();
-                                })
-                            }
-                            // If current branch contains a warning node,
-                            // then all incoming nodes are warningous
-                            if(currentBranch.warning){
-                                element.metadata.warning=currentBranch.warning;
-                                // Update stats for each warning node
-                                element.setTooltip();
-                            }
                             // If current branch contains a hazard node,
                             // then all incoming nodes are hazardous
                             if(currentBranch.hazard!=null){
@@ -1323,30 +1314,23 @@ const DNSResolutionGrapher = {};
                     }
                     // Add nodes for IPv4 and IPv6
                     ipData.forEach((ip)=>{
-                        // List of public nameserver ips
-                        const publicNameserverList = ['8.8.8.8','8.8.4.4','9.9.9.9','149.112.112.112','208.67.222.222',
-                        '208.67.220.220','1.1.1.1','1.0.0.1','185.228.168.9','185.228.169.9','64.6.64.6','64.6.65.6',
-                        '198.101.242.72','23.253.163.53','176.103.130.130','176.103.130.131',"2001:4860:4860::8888",
-                        "2001:4860:4860::8844","2620:fe::fe","2620:fe::9","9.9.9.10","2620:fe::10","2620:119:35::35",
-                        "2620:119:53::53","2606:4700:4700::1111","2606:4700:4700::1001","2a0d:2a00:1::2","2a0d:2a00:2::2",
-                        "2620:74:1b::1:1","2620:74:1c::2:2","198.101.242.72","23.253.163.53","2001:4800:780e:510:a8cf:392e:ff04:8982",
-                        "2001:4801:7825:103:be76:4eff:fe10:2e49","2a00:5a60::ad1:0ff","2a00:5a60::ad2:0ff","84.200.69.80",
-                        "84.200.70.40","8.26.56.26","8.20.247.20","205.171.3.66","205.171.202.166","195.46.39.39",
-                        "195.46.39.40","66.187.76.168","147.135.76.183","147.135.76.183","216.146.35.35","216.146.36.36",
-                        "45.33.97.5","37.235.1.177","77.88.8.8","77.88.8.1","91.239.100.100","89.233.43.71","74.82.42.42",
-                        "109.69.8.51","156.154.70.5","156.154.71.5","45.77.165.194","45.32.36.36"];
+                        if(!ipaddr){
+                            throw Error("Dependency ipaddr.js not loaded");
+                        }
                         let ipNode = new Node(ip.type,ip.name,
                             {"depth":depth,"version":ip.version,"link":ip.link,"archive":ip.archive});
+                        // Regulate ip format
+                        const ipName = (ip.version==4) ? parseIPv4(ip.name) : ipaddr.js.parse(ip.name).toString().toLowerCase();
                         // Test if ip is belongs to a public nameserver
-                        if(publicNameserverList.includes(ipNode.name)){
+                        if(publicNameserverList.includes(ipName)){
                             ipNode.metadata.warning.add(`A/AAAA record '${ipNode.name}' belongs to a public nameserver`);
                         }
                         // Test if ip is in private address space
-                        const ipParts = ipNode.name.split(".");
+                        const ipRange = ipaddr.js.parse(ipName).range();
                         if(
-                            ipParts[0]=="10" ||
-                            (ipParts[0]=="172" && ipParts[1]=="16") ||
-                            (ipParts[0]=="192" && ipParts[1]=="168")
+                            ipRange === "uniqueLocal" ||
+                            ipRange === "loopback" ||
+                            ipRange === "private"
                         ){
                             ipNode.metadata.warning.add(`${currentNode.name}'s IP '${ipNode.name}' is a part of private address space`);
                         }
@@ -1816,6 +1800,29 @@ const DNSResolutionGrapher = {};
             "tld":parts[0].toUpperCase(),
             "domain":(parts.length>1) ? (`${parts[1]}.${parts[0]}`).toUpperCase() : null
         }
+    }
+    // Handle ipv4 address correction
+    function parseIPv4(str){
+        // Split IPv4 address by '.'
+        const parts = str.split(".");
+        if(parts.length>4){
+            throw Error("Invalid IPv4 address");
+        }
+        // Fill in any missing octets with zeros
+        const spacer = [0,0,0,0];
+        spacer[3] = parts.pop();
+        parts.forEach((part,i)=>{spacer[i]=part});
+        // Convert ip address to int to address overflowing octets
+        let decimalIP = spacer.reverse().map((num,i)=>num*Math.pow(256,i))
+            .reduce((acc,num)=>acc+num);
+        // Convert int back to dotted decimal form
+        const ipv4 = [];
+        for(let i=3;i>=0;i--){
+            const octet = Math.floor(decimalIP/Math.pow(256,i));
+            decimalIP %= Math.pow(256,i);
+            ipv4.push(octet);
+        }
+        return ipv4.join(".");
     }
     // Generates nodeList for a domain
     function nodeListFromDomain(domainInput, overrideMetadata={}, callback){
