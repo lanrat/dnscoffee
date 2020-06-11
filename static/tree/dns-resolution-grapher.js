@@ -267,6 +267,44 @@ const DNSResolutionGrapher = {};
                 this.updateFunction(this.overview);
             }
         }
+        this.updateHazards = function(node){
+            // Maintain hazard status across branch
+            // If current element is a hazard element
+            // then set all nodes in branch to hazard
+            if(node.metadata.domain != null){
+                const currentBranch = this.branches[node.metadata.domain.toUpperCase()];
+                if(node.metadata.hazard.size > 0){
+                    // Append hazard message to branch
+                    currentBranch.hazard=currentBranch.hazard || new MsgSet();
+                    currentBranch.hazard.merge(node.metadata.hazard);
+                    // Update stats for each hazard domains
+                    this.updateOverview("hazard",node.metadata.domain);
+                    currentBranch.nodes.forEach((node)=>{
+                        node.metadata.hazard.merge(currentBranch.hazard);
+                        node.setTooltip();
+                    })
+                }
+                // If current branch contains a hazard node,
+                // then all incoming nodes are hazardous
+                if(currentBranch.hazard!=null){
+                    node.metadata.hazard.merge(currentBranch.hazard);
+                    // Update stats for each hazard node
+                    node.setTooltip();
+                }
+                node.parents.forEach((parent)=>{
+                    let newHazardFound = false;
+                    node.metadata.hazard.toList().forEach((hazard)=>{
+                        if(!parent.metadata.hazard.has(hazard)){
+                            parent.metadata.hazard.add(hazard);
+                            newHazardFound = true;
+                        }
+                    })
+                    if(newHazardFound){
+                        this.updateHazards(parent);
+                    }
+                })
+            }
+        }
         // Create new nodelist with same properties as old nodelist
         this.newSublist = function(){
             const sublist = new NodeList(this.metadata);
@@ -687,27 +725,7 @@ const DNSResolutionGrapher = {};
                                 this.branches[element.metadata.domain.toUpperCase()]={nodes:[]};
                             }
                             let currentBranch = this.branches[element.metadata.domain.toUpperCase()];
-                            // Maintain hazard status across branch
-                            // If current element is a hazard element
-                            // then set all nodes in branch to hazard
-                            if(element.metadata.hazard.size > 0){
-                                // Append hazard message to branch
-                                currentBranch.hazard=currentBranch.hazard || new MsgSet();
-                                currentBranch.hazard.merge(element.metadata.hazard);
-                                // Update stats for each hazard domains
-                                this.updateOverview("hazard",element.metadata.domain);
-                                currentBranch.nodes.forEach((node)=>{
-                                    node.metadata.hazard.merge(currentBranch.hazard);
-                                    node.setTooltip();
-                                })
-                            }
-                            // If current branch contains a hazard node,
-                            // then all incoming nodes are hazardous
-                            if(currentBranch.hazard!=null){
-                                element.metadata.hazard.merge(currentBranch.hazard);
-                                // Update stats for each hazard node
-                                element.setTooltip();
-                            }
+                            this.updateHazards(element);
                             if(element.metadata.warning.size>0){
                                 // Append warning message to branch
                                 currentBranch.warning=currentBranch.warning || new MsgSet();
@@ -819,6 +837,8 @@ const DNSResolutionGrapher = {};
                         }
                         if(!priorEdge){
                             this.edges.push(element);
+                            // Update hazards
+                            this.updateHazards(targetNode);
                             // Set hidden nodes
                             if(this.metadata.hideNodes.includes(sourceType) || 
                                 this.metadata.hideNodes.includes(targetType)){
@@ -1322,7 +1342,7 @@ const DNSResolutionGrapher = {};
                         // Regulate ip format
                         const ipName = (ip.version==4) ? parseIPv4(ip.name) : ipaddr.js.parse(ip.name).toString().toLowerCase();
                         // Test if ip is belongs to a public nameserver
-                        if(publicNameserverList.includes(ipName)){
+                        if(publicNameserverList.map((ns)=>ipaddr.js.parse(ns).toString().toLowerCase()).includes(ipName)){
                             ipNode.metadata.warning.add(`A/AAAA record '${ipNode.name}' belongs to a public nameserver`);
                         }
                         // Test if ip is in private address space
