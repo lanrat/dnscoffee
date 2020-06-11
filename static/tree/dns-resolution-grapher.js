@@ -10,8 +10,9 @@ const DNSResolutionGrapher = {};
     "2001:4801:7825:103:be76:4eff:fe10:2e49","2a00:5a60::ad1:0ff","2a00:5a60::ad2:0ff","84.200.69.80",
     "84.200.70.40","8.26.56.26","8.20.247.20","205.171.3.66","205.171.202.166","195.46.39.39",
     "195.46.39.40","66.187.76.168","147.135.76.183","147.135.76.183","216.146.35.35","216.146.36.36",
-    "45.33.97.5","37.235.1.177","77.88.8.8","77.88.8.1","91.239.100.100","89.233.43.71","74.82.42.42",
-    "109.69.8.51","156.154.70.5","156.154.71.5","45.77.165.194","45.32.36.36"];
+    "45.33.97.5","37.235.1.177","77.88.8.8","77.88.8.1","91.239.100.100","89.233.43.71",
+    "74.82.42.42","109.69.8.51","156.154.70.5","156.154.71.5","45.77.165.194",
+    "45.32.36.36"].map((ns)=>ipaddr.js.parse(ns).toString().toLowerCase());
     // Definitions for MsgSet node, edge, nodelist
     class MsgSet extends Set{
         merge(iterable){
@@ -1342,7 +1343,7 @@ const DNSResolutionGrapher = {};
                         // Regulate ip format
                         const ipName = (ip.version==4) ? parseIPv4(ip.name) : ipaddr.js.parse(ip.name).toString().toLowerCase();
                         // Test if ip is belongs to a public nameserver
-                        if(publicNameserverList.map((ns)=>ipaddr.js.parse(ns).toString().toLowerCase()).includes(ipName)){
+                        if(publicNameserverList.includes(ipName)){
                             ipNode.metadata.warning.add(`A/AAAA record '${ipNode.name}' belongs to a public nameserver`);
                         }
                         // Test if ip is in private address space
