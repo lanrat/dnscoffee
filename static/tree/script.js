@@ -83,6 +83,8 @@
             initNewGraph();
             // Get domain input
             currentDomain = domainInput.value;
+            // set url hash
+            window.location.hash = "#" + encodeURIComponent(currentDomain);
             // Generate node list
             DNSResolutionGrapher.nodeListFromDomain(currentDomain,getOverrideMetadata(),updateOverview).then((nodeList)=>{
                 // Create svg representation
@@ -191,6 +193,10 @@
             downloadGML.setAttribute("download",fileName+".graphml");
             downloadGML.setAttribute("href","data:text/xml;base64,"+btoa(gmlString));
             finishNewGraph();
+        }
+        if (document.location.hash != "") {
+            domainInput.value = decodeURIComponent(window.location.hash.substring(1));
+            loadDomainGraph();
         }
     });              
 })();
