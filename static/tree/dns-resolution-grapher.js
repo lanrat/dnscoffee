@@ -2241,14 +2241,23 @@ const DNSResolutionGrapher = {};
                     // Get scroll offset relative to document
                     const scrollTop = window.scrollY || document.documentElement.scrollTop;
                     const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-                    // Get wrapper position to adjust offset
-                    const wrapperPos = wrapper.node().getBoundingClientRect();
+                    // Get wrapper parent position to adjust offset (parent is sized to the current view)
+                    const wrapperPos = wrapper.node().parentNode.getBoundingClientRect();
                     const wrapperTopOffset = wrapperPos.top+scrollTop;
                     const wrapperLeftOffset = wrapperPos.left+scrollLeft;
+                    // Mouse coordinates relative to container
+                    const relMouseX = d3.event.pageX-wrapperLeftOffset;
+                    const relMouseY = d3.event.pageY-wrapperTopOffset;
+                    // If mouse is on left half of container, push tooltip to extend to the right
+                    // Else push tooltip to extend to the left
+                    const tooltipX = (relMouseX < wrapperPos.width / 2) ? relMouseX : relMouseX - tooltipWidth;
+                    // If mouse is on top half of container, push tooltip to extend down
+                    // Else push tooltip to extend up
+                    const tooltipY = (relMouseY < wrapperPos.height / 2) ? relMouseY : relMouseY - tooltipHeight;
                     tooltip.style("width",tooltipWidth+"px")
                     .style("height",tooltipHeight+"px")
                     .style("max-height",(containerNode.getBoundingClientRect().height*0.9)+"px")
-                    .style("top",(d3.event.pageY-wrapperTopOffset)+"px").style("left",(d3.event.pageX-wrapperLeftOffset)+"px");
+                    .style("top",(tooltipY)+"px").style("left",(tooltipX)+"px");
                     d.metadata.mouseover=true;
                 }
                 d.metadata.mouseoverDebounce=true;
