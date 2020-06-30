@@ -1940,6 +1940,7 @@ const DNSResolutionGrapher = {};
             .style('position','relative').style('width','100%')
             .style('max-height','inherit').style("z-index",0)
             .style('cursor','all-scroll')
+            .style('overflow','hidden')
             .append("div")
             .style('position','relative').style('width','100%').style("z-index",0)
             .style('padding-bottom',((parseInt(svgHeight)/parseInt(svgWidth))*100)+"%")
@@ -2232,11 +2233,6 @@ const DNSResolutionGrapher = {};
                 .ease(d3.easeLinear).style("opacity",1);
                 // If node is not already being hovered on, reposition tooltip
                 if(!d.metadata.mouseover){
-                    // Unset width and height to let content take max width
-                    tooltip.style("width","").style("height","").style("z-index",9999);
-                    const tooltipPos = tooltip.node().getElementsByTagName("div")[0].getBoundingClientRect();
-                    const tooltipWidth = tooltipPos.width+20; /*10px padding*/
-                    const tooltipHeight = tooltipPos.height+20; /*10px padding*/
                     // Get scroll offset relative to document
                     const scrollTop = window.scrollY || document.documentElement.scrollTop;
                     const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
@@ -2245,14 +2241,32 @@ const DNSResolutionGrapher = {};
                     const wrapperTopOffset = wrapperPos.top+scrollTop;
                     const wrapperLeftOffset = wrapperPos.left+scrollLeft;
                     // Mouse coordinates relative to container
+                    // Unset width and height to let content take max width
+                    tooltip.style("width","").style("height","").style("z-index",9999);
+                    const tooltipPos = tooltip.node().getElementsByTagName("div")[0].getBoundingClientRect();
+                    // 10px padding, cap at width of wrapper
+                    const tooltipWidth = Math.min(tooltipPos.width+20, wrapperPos.width);
+                    // 10px padding, cap at height of wrapper
+                    const tooltipHeight = Math.min(tooltipPos.height+20, wrapperPos.height); 
+                    
                     const relMouseX = d3.event.pageX-wrapperLeftOffset;
                     const relMouseY = d3.event.pageY-wrapperTopOffset;
                     // If mouse is on left half of container, push tooltip to extend to the right
                     // Else push tooltip to extend to the left
-                    const tooltipX = (relMouseX < wrapperPos.width / 2) ? relMouseX : relMouseX - tooltipWidth;
+                    let tooltipX = (relMouseX < wrapperPos.width / 2) ? relMouseX : relMouseX - tooltipWidth;
+                    // Adjust x coordinate to prevent overflow
+                    tooltipX = (tooltipX + tooltipWidth > wrapperPos.width) ? 
+                        wrapperPos.width-tooltipWidth :
+                        tooltipX;
+                    tooltipX = (tooltipX < 0) ? 0 : tooltipX
                     // If mouse is on top half of container, push tooltip to extend down
                     // Else push tooltip to extend up
-                    const tooltipY = (relMouseY < wrapperPos.height / 2) ? relMouseY : relMouseY - tooltipHeight;
+                    let tooltipY = (relMouseY < wrapperPos.height / 2) ? relMouseY : relMouseY - tooltipHeight;
+                    // Adjust y coordinate to prevent overflow
+                    tooltipY = (tooltipY + tooltipHeight > wrapperPos.height) ? 
+                        wrapperPos.height-height :
+                        tooltipY;
+                    tooltipY = (tooltipY < 0) ? 0 : tooltipY;
                     tooltip.style("width",tooltipWidth+"px")
                     .style("height",tooltipHeight+"px")
                     .style("max-height",(containerNode.getBoundingClientRect().height*0.9)+"px")
