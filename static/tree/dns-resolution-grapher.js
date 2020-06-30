@@ -1940,7 +1940,6 @@ const DNSResolutionGrapher = {};
             .style('position','relative').style('width','100%')
             .style('max-height','inherit').style("z-index",0)
             .style('cursor','all-scroll')
-            .style('overflow','hidden')
             .append("div")
             .style('position','relative').style('width','100%').style("z-index",0)
             .style('padding-bottom',((parseInt(svgHeight)/parseInt(svgWidth))*100)+"%")
