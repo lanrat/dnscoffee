@@ -2296,6 +2296,13 @@ const DNSResolutionGrapher = {};
                     }
                 },150);
             }
+            function click(d){
+                const baseURL = "https://dns.coffee";
+                const link = d.metadata.link;
+                if(link){
+                    window.location.href = baseURL+link;
+                }
+            }
             // Add hoverbox for tooltip nodes
             nodes.filter((d)=>d.metadata.tooltip).selectAll("rect")
             .on("mouseover",mouseover).on("mouseout",mouseout);
@@ -2305,6 +2312,9 @@ const DNSResolutionGrapher = {};
             .on("mouseover",mouseover).on("mouseout",mouseout);
             // Maintain hover on tooltip
             tooltip.on("mouseover",()=>{mouseover(tooltip)}).on("mouseout",()=>{mouseout(tooltip)});
+            // Add link to node for dnscoffee page
+            nodes.filter((d)=>d.metadata.link).selectAll("rect").on("click", click);
+            nodes.filter((d)=>d.metadata.link).selectAll("text").on("click", click);
             // Create marker for arrows
             const edgeColors = {};
             Object.keys(nodeList.metadata.styleConfig.edgeStrokeColor).forEach((key)=>{
